@@ -1,11 +1,18 @@
 const express = require("express");
 const router = express.Router();
 const Order = require("../models/Order");
+const Product = require("../models/Product"); // To fetch product names if needed
 
 // POST new order
 router.post("/", async (req, res) => {
   try {
     const { customer, items, totalAmount } = req.body;
+
+    // Map items to schema format
+    const mappedItems = items.map(i => ({
+      productId: i.productId,
+      quantity: i.qty
+    }));
 
     const order = new Order({
       customerName: customer.name,
@@ -13,20 +20,23 @@ router.post("/", async (req, res) => {
       city: customer.city,
       pincode: customer.pincode,
       phone: customer.phone,
-      items: items.map(i => ({
-        product: i.product,
-        price: i.price,
-        quantity: i.quantity || 1
-      })),
+      items: mappedItems,
       totalAmount
     });
 
     await order.save();
 
+    // Optional: Generate WhatsApp message with product names
+    const productDocs = await Product.find({ _id: { $in: mappedItems.map(i => i.productId) } });
+    const msgItems = mappedItems.map(i => {
+      const prod = productDocs.find(p => p._id.toString() === i.productId);
+      return `${prod ? prod.name : i.productId} x${i.quantity}`;
+    });
+
     const msg = encodeURIComponent(
       `📦 New Order\n\n` +
       `👤 Name: ${customer.name}\n📞 Phone: ${customer.phone}\n🏠 Address: ${customer.address}, ${customer.city}, ${customer.pincode}\n\n` +
-      `🛒 Items:\n${items.map(i => `${i.product} x${i.quantity || 1} = ₹${i.price * (i.quantity || 1)}`).join("\n")}\n\n` +
+      `🛒 Items:\n${msgItems.join("\n")}\n\n` +
       `💰 Total: ₹${totalAmount}`
     );
 
@@ -42,7 +52,7 @@ router.post("/", async (req, res) => {
 // GET all orders
 router.get("/", async (req, res) => {
   try {
-    const orders = await Order.find();
+    const orders = await Order.find().populate("items.productId", "name price image");
     res.json(orders);
   } catch (err) {
     console.error("❌ Fetch Orders Error:", err);
@@ -51,4 +61,5 @@ router.get("/", async (req, res) => {
 });
 
 module.exports = router;
+
 
