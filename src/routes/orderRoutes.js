@@ -7,7 +7,6 @@ router.post("/", async (req, res) => {
   try {
     const { customer, items, totalAmount } = req.body;
 
-    // ✅ Save in DB
     const order = new Order({
       customerName: customer.name,
       address: customer.address,
@@ -24,7 +23,6 @@ router.post("/", async (req, res) => {
 
     await order.save();
 
-    // ✅ Build WhatsApp message
     const msg = encodeURIComponent(
       `📦 New Order\n\n` +
       `👤 Name: ${customer.name}\n📞 Phone: ${customer.phone}\n🏠 Address: ${customer.address}, ${customer.city}, ${customer.pincode}\n\n` +
@@ -34,7 +32,6 @@ router.post("/", async (req, res) => {
 
     const whatsappURL = `https://wa.me/919482667559?text=${msg}`;
 
-    // ✅ Respond back
     res.json({ success: true, order, whatsapp: whatsappURL });
   } catch (err) {
     console.error("❌ Order Save Error:", err);
@@ -42,4 +39,16 @@ router.post("/", async (req, res) => {
   }
 });
 
+// GET all orders
+router.get("/", async (req, res) => {
+  try {
+    const orders = await Order.find();
+    res.json(orders);
+  } catch (err) {
+    console.error("❌ Fetch Orders Error:", err);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
 module.exports = router;
+
