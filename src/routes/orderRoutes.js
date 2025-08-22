@@ -1,18 +1,23 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
 const Order = require("../models/Order");
-const Product = require("../models/Product"); // To fetch product names if needed
 
 // POST new order
 router.post("/", async (req, res) => {
   try {
     const { customer, items, totalAmount } = req.body;
 
-    // Map items to schema format
-    const mappedItems = items.map(i => ({
-      productId: i.productId,
-      quantity: i.qty
-    }));
+    // Convert productId to ObjectId and map qty
+    const mappedItems = items.map(i => {
+      if(!mongoose.Types.ObjectId.isValid(i.productId)){
+        throw new Error("Invalid productId: " + i.productId);
+      }
+      return {
+        productId: mongoose.Types.ObjectId(i.productId),
+        quantity: i.qty
+      };
+    });
 
     const order = new Order({
       customerName: customer.name,
@@ -26,26 +31,10 @@ router.post("/", async (req, res) => {
 
     await order.save();
 
-    // Optional: Generate WhatsApp message with product names
-    const productDocs = await Product.find({ _id: { $in: mappedItems.map(i => i.productId) } });
-    const msgItems = mappedItems.map(i => {
-      const prod = productDocs.find(p => p._id.toString() === i.productId);
-      return `${prod ? prod.name : i.productId} x${i.quantity}`;
-    });
-
-    const msg = encodeURIComponent(
-      `📦 New Order\n\n` +
-      `👤 Name: ${customer.name}\n📞 Phone: ${customer.phone}\n🏠 Address: ${customer.address}, ${customer.city}, ${customer.pincode}\n\n` +
-      `🛒 Items:\n${msgItems.join("\n")}\n\n` +
-      `💰 Total: ₹${totalAmount}`
-    );
-
-    const whatsappURL = `https://wa.me/919482667559?text=${msg}`;
-
-    res.json({ success: true, order, whatsapp: whatsappURL });
+    res.json({ success: true, order });
   } catch (err) {
     console.error("❌ Order Save Error:", err);
-    res.status(500).json({ success: false, error: "Server Error" });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -61,5 +50,6 @@ router.get("/", async (req, res) => {
 });
 
 module.exports = router;
+
 
 
