@@ -7,8 +7,9 @@ dotenv.config();
 const app = express();
 
 // Middlewares
+const allowed = process.env.FRONTEND_URL || "http://localhost:8080";
+app.use(cors({ origin: allowed }));
 app.use(express.json());
-app.use(cors({ origin: "https://puregoldjaggery.web.app" }));
 
 // Connect MongoDB
 connectDB();
@@ -27,4 +28,5 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
 
