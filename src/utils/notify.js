@@ -1,28 +1,59 @@
 const admin = require("firebase-admin");
 
+// ✅ Initialize Firebase Admin SDK once
 if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
-
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    credential: admin.credential.cert({
+      type: "service_account",
+      project_id: process.env.FIREBASE_PROJECT_ID,
+      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      client_email: process.env.FIREBASE_CLIENT_EMAIL,
+      client_id: process.env.FIREBASE_CLIENT_ID,
+      auth_uri: "https://accounts.google.com/o/oauth2/auth",
+      token_uri: "https://oauth2.googleapis.com/token",
+      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+      client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
+    }),
   });
 }
 
-async function sendNotification(token, title, body, orderId) {
-  const message = {
-    notification: { title, body },
-    data: { orderId },
-    token,
-  };
+const messaging = admin.messaging();
 
+/**
+ * Send notification to specific device token(s)
+ * @param {string|string[]} tokens - One or multiple FCM tokens
+ * @param {Object} payload - Notification payload
+ */
+async function sendNotification(tokens, payload) {
   try {
-    const response = await admin.messaging().send(message);
-    console.log("✅ Notification sent:", response);
-    return { success: true, response };
-  } catch (err) {
-    console.error("❌ Error sending notification:", err);
-    return { success: false, error: err };
+    const message = {
+      notification: {
+        title: payload.title || "📦 New Order",
+        body: payload.body || "A new order has been placed.",
+      },
+      data: payload.data || {},
+    };
+
+    if (Array.isArray(tokens)) {
+      const response = await messaging.sendEachForMulticast({
+        tokens,
+        ...message,
+      });
+      console.log("✅ Notification sent to multiple devices:", response);
+      return response;
+    } else {
+      const response = await messaging.send({
+        token: tokens,
+        ...message,
+      });
+      console.log("✅ Notification sent to single device:", response);
+      return response;
+    }
+  } catch (error) {
+    console.error("❌ Error sending notification:", error);
   }
 }
 
 module.exports = { sendNotification };
+
