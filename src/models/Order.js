@@ -8,13 +8,14 @@ const orderSchema = new mongoose.Schema({
       quantity: { type: Number, default: 1 },
     }
   ],
-  totalAmount: Number,
-  customerName: String,
-  address: String,
-  city: String,
-  pincode: String,
-  phone: String,
+  totalAmount: { type: Number, required: true },
+  customerName: { type: String, required: true },
+  address: { type: String, required: true },
+  city: { type: String, required: true },
+  pincode: { type: String, required: true },
+  phone: { type: String, required: true },
   status: { type: String, default: "Pending" },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Order", orderSchema);
+
