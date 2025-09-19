@@ -2,17 +2,18 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/db");
+const { sendNotification } = require("./utils/notify");
 
 dotenv.config();
 const app = express();
 
-// ✅ Allowed Origins (Customer + Admin + Local Dev)
+// ✅ Allowed Origins
 const allowedOrigins = [
-  process.env.FRONTEND_URL,               // customer site
-  process.env.ADMIN_URL,                  // admin app
-  "http://localhost:3000",                // customer local
+  process.env.FRONTEND_URL,  // customer site
+  process.env.ADMIN_URL,     // admin app
+  "http://localhost:3000",   // customer local
   "http://127.0.0.1:3000",
-  "http://localhost:3001",                // admin local
+  "http://localhost:3001",   // admin local
   "http://127.0.0.1:3001"
 ].filter(Boolean);
 
@@ -36,11 +37,27 @@ connectDB();
 // ✅ Routes
 app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
-app.use("/api/tokens", require("./routes/tokenRoutes")); // NEW
+app.use("/api/tokens", require("./routes/tokenRoutes"));
 
 // ✅ Root
 app.get("/", (req, res) => {
   res.send("✅ PureGold Backend Running...");
+});
+
+// ✅ Test Notification Route
+app.get("/api/test-notification", async (req, res) => {
+  const Token = require("./models/Token");
+  const tokens = await Token.find().distinct("token");
+
+  if (tokens.length === 0) return res.send("⚠️ No tokens saved yet");
+
+  await sendNotification(tokens, {
+    title: "🔔 Test Notification",
+    body: "This is a test from Render backend",
+    data: { orderId: "test123" }
+  });
+
+  res.send("✅ Test notification sent");
 });
 
 // ✅ Start Server
