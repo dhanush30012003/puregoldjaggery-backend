@@ -7,15 +7,20 @@ const { sendNotification } = require("../utils/notify");
 // Create new order
 router.post("/", async (req, res) => {
   try {
-    const { customerName, phone, address, city, pincode, items, totalAmount } = req.body;
+    const { customer, items, totalAmount } = req.body;
+
+    // ✅ Validate payload
+    if (!customer || !items || !totalAmount) {
+      return res.status(400).json({ error: "Invalid request format" });
+    }
 
     // ✅ Save order in DB
     const newOrder = await Order.create({
-      customerName,
-      phone,
-      address,
-      city,
-      pincode,
+      customerName: customer.name,
+      phone: customer.phone,
+      address: customer.address,
+      city: customer.city,
+      pincode: customer.pincode,
       items,
       totalAmount,
     });
@@ -26,7 +31,7 @@ router.post("/", async (req, res) => {
     if (tokens.length > 0) {
       await sendNotification(tokens, {
         title: "📦 New Order Received",
-        body: `Customer: ${customerName} | Total: ₹${totalAmount}`,
+        body: `Customer: ${customer.name} | Total: ₹${totalAmount}`,
         data: { orderId: newOrder._id.toString() },
       });
     } else {
@@ -51,4 +56,3 @@ router.get("/", async (req, res) => {
 });
 
 module.exports = router;
-
