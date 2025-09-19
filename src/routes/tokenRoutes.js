@@ -19,4 +19,14 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Get all tokens (for debugging)
+router.get("/", async (req, res) => {
+  try {
+    const tokens = await Token.find().distinct("token");
+    res.json({ success: true, tokens });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
