@@ -9,11 +9,11 @@ const app = express();
 
 // ✅ Allowed Origins
 const allowedOrigins = [
-  process.env.FRONTEND_URL,  // customer site
-  process.env.ADMIN_URL,     // admin app
-  "http://localhost:3000",   // customer local
+  process.env.FRONTEND_URL,
+  process.env.ADMIN_URL,
+  "http://localhost:3000",
   "http://127.0.0.1:3000",
-  "http://localhost:3001",   // admin local
+  "http://localhost:3001",
   "http://127.0.0.1:3001"
 ].filter(Boolean);
 
@@ -65,3 +65,4 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
