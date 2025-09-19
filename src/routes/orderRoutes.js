@@ -9,12 +9,10 @@ router.post("/", async (req, res) => {
   try {
     const { customer, items, totalAmount } = req.body;
 
-    // ✅ Validate payload
     if (!customer || !items || !totalAmount) {
       return res.status(400).json({ error: "Invalid request format" });
     }
 
-    // ✅ Save order in DB
     const newOrder = await Order.create({
       customerName: customer.name,
       phone: customer.phone,
@@ -25,7 +23,6 @@ router.post("/", async (req, res) => {
       totalAmount,
     });
 
-    // ✅ Get all admin device tokens
     const tokens = await Token.find().distinct("token");
 
     if (tokens.length > 0) {
@@ -38,7 +35,8 @@ router.post("/", async (req, res) => {
       console.log("⚠️ No FCM tokens registered yet.");
     }
 
-    res.status(201).json(newOrder);
+    // ✅ Add success flag for frontend
+    res.status(201).json({ success: true, order: newOrder });
   } catch (err) {
     console.error("❌ Error creating order:", err);
     res.status(500).json({ error: err.message });
@@ -56,3 +54,4 @@ router.get("/", async (req, res) => {
 });
 
 module.exports = router;
+
