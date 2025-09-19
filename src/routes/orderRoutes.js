@@ -1,44 +1,68 @@
 const express = require("express");
 const router = express.Router();
 const Order = require("../models/Order");
+const Token = require("../models/Token");
+const { sendNotification } = require("../utils/notify");
 
 // POST new order
 router.post("/", async (req, res) => {
   try {
     const { customer, items, totalAmount } = req.body;
 
-    // ✅ Save in DB
     const order = new Order({
       customerName: customer.name,
       address: customer.address,
       city: customer.city,
       pincode: customer.pincode,
       phone: customer.phone,
-      items: items.map(i => ({
+      items: items.map((i) => ({
         product: i.product,
         price: i.price,
-        quantity: i.quantity || 1
+        quantity: i.quantity || 1,
       })),
-      totalAmount
+      totalAmount,
     });
 
-    await order.save();
+    const savedOrder = await order.save();
 
-    // ✅ Build WhatsApp message
-    const msg = encodeURIComponent(
-      `📦 New Order\n\n` +
-      `👤 Name: ${customer.name}\n📞 Phone: ${customer.phone}\n🏠 Address: ${customer.address}, ${customer.city}, ${customer.pincode}\n\n` +
-      `🛒 Items:\n${items.map(i => `${i.product} x${i.quantity || 1} = ₹${i.price * (i.quantity || 1)}`).join("\n")}\n\n` +
-      `💰 Total: ₹${totalAmount}`
-    );
+    // ✅ Notify admin(s)
+    const tokens = await Token.find();
+    if (tokens.length > 0) {
+      for (const t of tokens) {
+        await sendNotification(
+          t.token,
+          "🛒 New Order Received",
+          `Customer: ${customer.name}, Amount: ₹${totalAmount}`,
+          savedOrder._id.toString()
+        );
+      }
+    }
 
-    const whatsappURL = `https://wa.me/919482667559?text=${msg}`;
-
-    // ✅ Respond back
-    res.json({ success: true, order, whatsapp: whatsappURL });
+    res.json({ success: true, order: savedOrder });
   } catch (err) {
     console.error("❌ Order Save Error:", err);
     res.status(500).json({ success: false, error: "Server Error" });
+  }
+});
+
+// GET all orders (for admin)
+router.get("/", async (req, res) => {
+  try {
+    const orders = await Order.find().sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET single order (for admin modal)
+router.get("/:id", async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, message: "Not found" });
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
