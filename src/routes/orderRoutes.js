@@ -26,43 +26,23 @@ router.post("/", async (req, res) => {
     const savedOrder = await order.save();
 
     // ✅ Notify admin(s)
-    const tokens = await Token.find();
+    const tokens = await Token.find().distinct("token");
     if (tokens.length > 0) {
-      for (const t of tokens) {
-        await sendNotification(
-          t.token,
-          "🛒 New Order Received",
-          `Customer: ${customer.name}, Amount: ₹${totalAmount}`,
-          savedOrder._id.toString()
-        );
-      }
+      await Promise.all(
+        tokens.map((t) =>
+          sendNotification(t, {
+            title: "🛒 New Order Received",
+            body: `Customer: ${customer.name}, Amount: ₹${totalAmount}`,
+            data: { orderId: savedOrder._id.toString() }
+          })
+        )
+      );
     }
 
     res.json({ success: true, order: savedOrder });
   } catch (err) {
     console.error("❌ Order Save Error:", err);
     res.status(500).json({ success: false, error: "Server Error" });
-  }
-});
-
-// GET all orders (for admin)
-router.get("/", async (req, res) => {
-  try {
-    const orders = await Order.find().sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// GET single order (for admin modal)
-router.get("/:id", async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ success: false, message: "Not found" });
-    res.json(order);
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
   }
 });
 
