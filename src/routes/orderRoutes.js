@@ -1,49 +1,29 @@
 const express = require("express");
 const router = express.Router();
 const Order = require("../models/Order");
-const Token = require("../models/Token");
-const { sendNotification } = require("../utils/notify");
 
-// POST new order
+// ✅ Create order
 router.post("/", async (req, res) => {
   try {
-    const { customer, items, totalAmount } = req.body;
-
-    const order = new Order({
-      customerName: customer.name,
-      address: customer.address,
-      city: customer.city,
-      pincode: customer.pincode,
-      phone: customer.phone,
-      items: items.map((i) => ({
-        product: i.product,
-        price: i.price,
-        quantity: i.quantity || 1,
-      })),
-      totalAmount,
-    });
-
-    const savedOrder = await order.save();
-
-    // ✅ Notify admin(s)
-    const tokens = await Token.find().distinct("token");
-    if (tokens.length > 0) {
-      await Promise.all(
-        tokens.map((t) =>
-          sendNotification(t, {
-            title: "🛒 New Order Received",
-            body: `Customer: ${customer.name}, Amount: ₹${totalAmount}`,
-            data: { orderId: savedOrder._id.toString() }
-          })
-        )
-      );
-    }
-
-    res.json({ success: true, order: savedOrder });
+    const order = new Order(req.body);
+    await order.save();
+    res.status(201).json(order);
   } catch (err) {
-    console.error("❌ Order Save Error:", err);
-    res.status(500).json({ success: false, error: "Server Error" });
+    console.error("❌ Error creating order:", err);
+    res.status(500).json({ error: "Failed to create order" });
+  }
+});
+
+// ✅ Get all orders (for Admin app)
+router.get("/", async (req, res) => {
+  try {
+    const orders = await Order.find().sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    console.error("❌ Error fetching orders:", err);
+    res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
 
 module.exports = router;
+
