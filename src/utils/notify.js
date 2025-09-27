@@ -1,10 +1,9 @@
 const admin = require("firebase-admin");
 
-// Initialize Firebase Admin only once
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
 
-  // ✅ Fix private key newlines
+  // ✅ Fix escaped newlines in private key
   serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
 
   admin.initializeApp({
@@ -14,19 +13,21 @@ if (!admin.apps.length) {
   console.log("✅ Firebase Admin initialized");
 }
 
-/**
- * Send notification to a single device token
- */
-async function sendNotification(token, { title, body, data }) {
+async function sendNotification(tokens, { title, body, data }) {
+  if (!tokens || tokens.length === 0) {
+    console.warn("⚠️ No tokens to send notification");
+    return { success: false };
+  }
+
   const message = {
     notification: { title, body },
     data: data || {},
-    token,
+    tokens: Array.isArray(tokens) ? tokens : [tokens],
   };
 
   try {
-    const response = await admin.messaging().send(message);
-    console.log("✅ Notification sent:", response);
+    const response = await admin.messaging().sendMulticast(message);
+    console.log("✅ Notification sent:", response.successCount);
     return { success: true, response };
   } catch (err) {
     console.error("❌ Error sending notification:", err);
@@ -34,28 +35,5 @@ async function sendNotification(token, { title, body, data }) {
   }
 }
 
-/**
- * Send notification to multiple device tokens
- */
-async function sendNotificationToMany(tokens, { title, body, data }) {
-  if (!Array.isArray(tokens) || tokens.length === 0) {
-    return { success: false, error: "No tokens provided" };
-  }
+module.exports = { sendNotification };
 
-  const message = {
-    notification: { title, body },
-    data: data || {},
-    tokens,
-  };
-
-  try {
-    const response = await admin.messaging().sendMulticast(message);
-    console.log("✅ Notifications sent:", response.successCount, "successful");
-    return { success: true, response };
-  } catch (err) {
-    console.error("❌ Error sending notifications:", err);
-    return { success: false, error: err };
-  }
-}
-
-module.exports = { sendNotification, sendNotificationToMany };
