@@ -2,8 +2,10 @@ const admin = require("firebase-admin");
 
 if (!admin.apps.length) {
   try {
-    // Parse service account from environment variable
-    const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+    // Parse JSON from env, replace literal \n with real newlines
+    const serviceAccount = JSON.parse(
+      process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON.replace(/\\n/g, '\n')
+    );
 
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
@@ -29,7 +31,7 @@ async function sendNotification(tokens, { title, body, data }) {
 
   try {
     const response = await admin.messaging().sendMulticast(message);
-    console.log("✅ Notification sent:", response);
+    console.log("✅ Notification sent:", response.successCount, "successful,", response.failureCount, "failed");
     return { success: true, response };
   } catch (err) {
     console.error("❌ Error sending notification:", err);
@@ -38,4 +40,3 @@ async function sendNotification(tokens, { title, body, data }) {
 }
 
 module.exports = { sendNotification };
-
