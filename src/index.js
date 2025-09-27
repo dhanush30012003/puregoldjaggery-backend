@@ -7,15 +7,12 @@ const { sendNotification } = require("./utils/notify");
 dotenv.config();
 const app = express();
 
-// ✅ Allowed Origins
+// Allowed Origins
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.ADMIN_URL,
-  "https://jaggeryadminapp.web.app",
   "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "http://localhost:3001",
-  "http://127.0.0.1:3001"
+  "http://127.0.0.1:3000"
 ].filter(Boolean);
 
 app.use(
@@ -32,20 +29,18 @@ app.use(
 
 app.use(express.json());
 
-// ✅ Connect MongoDB
+// Connect MongoDB
 connectDB();
 
-// ✅ Routes
+// Routes
 app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/tokens", require("./routes/tokenRoutes"));
 
-// ✅ Root
-app.get("/", (req, res) => {
-  res.send("✅ PureGold Backend Running...");
-});
+// Root
+app.get("/", (req, res) => res.send("✅ PureGold Backend Running..."));
 
-// ✅ Test Notification Route
+// Test Notification
 app.get("/api/test-notification", async (req, res) => {
   const Token = require("./models/Token");
   const tokens = await Token.find().distinct("token");
@@ -61,9 +56,8 @@ app.get("/api/test-notification", async (req, res) => {
   res.send("✅ Test notification sent");
 });
 
-// ✅ Start Server
+// Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
-
