@@ -2,6 +2,7 @@ const admin = require("firebase-admin");
 
 if (!admin.apps.length) {
   try {
+    // Parse service account from environment variable
     const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
 
     admin.initializeApp({
@@ -23,7 +24,7 @@ async function sendNotification(tokens, { title, body, data }) {
   const message = {
     notification: { title, body },
     data: data || {},
-    tokens, // ✅ multicast
+    tokens, // multicast
   };
 
   try {
@@ -37,3 +38,4 @@ async function sendNotification(tokens, { title, body, data }) {
 }
 
 module.exports = { sendNotification };
+
