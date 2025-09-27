@@ -16,8 +16,6 @@ if (!admin.apps.length) {
 
 /**
  * Send notification to a single device token
- * @param {string} token - FCM device token
- * @param {object} param1 - { title, body, data }
  */
 async function sendNotification(token, { title, body, data }) {
   const message = {
@@ -38,8 +36,6 @@ async function sendNotification(token, { title, body, data }) {
 
 /**
  * Send notification to multiple device tokens
- * @param {string[]} tokens - Array of FCM device tokens
- * @param {object} param1 - { title, body, data }
  */
 async function sendNotificationToMany(tokens, { title, body, data }) {
   if (!Array.isArray(tokens) || tokens.length === 0) {
