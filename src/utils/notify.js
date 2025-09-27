@@ -1,9 +1,10 @@
 const admin = require("firebase-admin");
 
-// Initialize Firebase Admin only once
 if (!admin.apps.length) {
-  // Parse the one-line JSON environment variable
   const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+
+  // ✅ Convert escaped newlines to real newlines
+  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
@@ -30,3 +31,4 @@ async function sendNotification(token, { title, body, data }) {
 }
 
 module.exports = { sendNotification };
+
