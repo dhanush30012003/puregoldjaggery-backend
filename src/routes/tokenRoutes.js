@@ -2,21 +2,31 @@ const express = require("express");
 const router = express.Router();
 const Token = require("../models/Token");
 
-// Save FCM token
+// ✅ Save token to DB
 router.post("/", async (req, res) => {
   try {
     const { token } = req.body;
-    if (!token) return res.status(400).json({ success: false, message: "Token required" });
+    if (!token) return res.status(400).json({ error: "Token is required" });
 
-    let exists = await Token.findOne({ token });
-    if (!exists) {
-      await Token.create({ token });
-    }
+    // Avoid duplicates
+    const savedToken = await Token.findOneAndUpdate(
+      { token },
+      { token },
+      { upsert: true, new: true }
+    );
 
-    res.json({ success: true });
+    res.status(200).json(savedToken);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error("❌ Error saving token:", err);
+    res.status(500).json({ error: "Failed to save token" });
   }
 });
 
+// ✅ Get all tokens (for testing)
+router.get("/", async (req, res) => {
+  const tokens = await Token.find();
+  res.json(tokens);
+});
+
 module.exports = router;
+
