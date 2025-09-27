@@ -1,13 +1,12 @@
 const admin = require("firebase-admin");
 
+// Initialize Firebase Admin only once
 if (!admin.apps.length) {
-  // Parse the JSON from environment variable
   const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
 
-  // ✅ Replace escaped \n with real newlines
-  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+  // ✅ Fix private key newlines
+  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
 
-  // Initialize Firebase Admin
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
@@ -15,6 +14,11 @@ if (!admin.apps.length) {
   console.log("✅ Firebase Admin initialized");
 }
 
+/**
+ * Send notification to a single device token
+ * @param {string} token - FCM device token
+ * @param {object} param1 - { title, body, data }
+ */
 async function sendNotification(token, { title, body, data }) {
   const message = {
     notification: { title, body },
@@ -32,4 +36,30 @@ async function sendNotification(token, { title, body, data }) {
   }
 }
 
-module.exports = { sendNotification };
+/**
+ * Send notification to multiple device tokens
+ * @param {string[]} tokens - Array of FCM device tokens
+ * @param {object} param1 - { title, body, data }
+ */
+async function sendNotificationToMany(tokens, { title, body, data }) {
+  if (!Array.isArray(tokens) || tokens.length === 0) {
+    return { success: false, error: "No tokens provided" };
+  }
+
+  const message = {
+    notification: { title, body },
+    data: data || {},
+    tokens,
+  };
+
+  try {
+    const response = await admin.messaging().sendMulticast(message);
+    console.log("✅ Notifications sent:", response.successCount, "successful");
+    return { success: true, response };
+  } catch (err) {
+    console.error("❌ Error sending notifications:", err);
+    return { success: false, error: err };
+  }
+}
+
+module.exports = { sendNotification, sendNotificationToMany };
