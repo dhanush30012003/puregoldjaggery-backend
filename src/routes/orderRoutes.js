@@ -1,14 +1,15 @@
+// routes/orderRoutes.js
 const express = require("express");
 const router = express.Router();
 const Order = require("../models/Order");
-const Token = require("../models/Token");
-const { sendNotification } = require("../utils/notify");
+const beamsClient = require("../utils/pusher"); // Pusher Beams client
 
 // POST new order
 router.post("/", async (req, res) => {
   try {
     const { customer, items, totalAmount } = req.body;
 
+    // Create and save the order
     const order = new Order({
       customerName: customer.name,
       address: customer.address,
@@ -25,17 +26,16 @@ router.post("/", async (req, res) => {
 
     const savedOrder = await order.save();
 
-    // ✅ Notify admin(s)
-    const tokens = await Token.find();
-    if (tokens.length > 0) {
-      for (const t of tokens) {
-        await sendNotification(
-          t.token,
-          "🛒 New Order Received",
-          `Customer: ${customer.name}, Amount: ₹${totalAmount}, Order ID: ${savedOrder._id.toString()}`
-        );
-      }
-    }
+    // ✅ Send Pusher Beams notification to all admin devices subscribed to "orders"
+    await beamsClient.publishToInterests(["orders"], {
+      web: {
+        notification: {
+          title: "🛒 New Order Received",
+          body: `Customer: ${customer.name}, Amount: ₹${totalAmount}, Order ID: ${savedOrder._id}`,
+          deep_link: "https://jaggeryadminapp.web.app", // Admin dashboard URL
+        },
+      },
+    });
 
     res.json({
       success: true,
@@ -67,10 +67,11 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({
-      success: false,
-      message: "Not found",
-    });
+    if (!order)
+      return res.status(404).json({
+        success: false,
+        message: "Not found",
+      });
 
     res.json(order);
   } catch (err) {
