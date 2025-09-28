@@ -4,7 +4,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/db");
-const { sendNotification } = require("./utils/notify");
+const { sendNotification } = require("./utils/pusher");
 const admin = require("firebase-admin");
 
 // Load environment variables
